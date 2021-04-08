@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_tutorials/task.dart';
 
 void main() async {
   await Hive.initFlutter();
-  await Hive.openBox<String>("tasksBox");
+  Hive.registerAdapter(TaskAdapter());
+  await Hive.openBox<Task>('todo_box');
   runApp(MaterialApp(
-    home: MyApp(),
-    theme: ThemeData(primaryColor: Color(0xff0D3257)),
-    debugShowCheckedModeBanner: false,
-  ));
+      title: 'Todo App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primaryColor: Color(0xff0D3257)),
+      home: MyApp()));
 }
 
 class MyApp extends StatefulWidget {
@@ -18,13 +20,27 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  TextEditingController _textFieldController = TextEditingController();
-  Box<String> tasksBox;
+  Box<Task> tasksBox;
+  TextEditingController _textEditingController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    tasksBox = Hive.box("tasksBox");
+    tasksBox = Hive.box('todo_box');
+  }
+
+  void onAddTask() {
+    if (_textEditingController.text.isNotEmpty) {
+      final newTask = Task(_textEditingController.text, false);
+      tasksBox.add(newTask);
+      Navigator.pop(context);
+      _textEditingController.clear();
+      return;
+    }
+  }
+
+  void onUpdateTask(int index) {
+    return;
   }
 
   void onDeleteTask(int index) {
@@ -32,39 +48,34 @@ class _MyAppState extends State<MyApp> {
     return;
   }
 
-  void onAddTask() {
-    if (_textFieldController.text.isNotEmpty) {
-      tasksBox.add(_textFieldController.text);
-      Navigator.pop(context);
-      _textFieldController.clear();
-      return;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("TODO"),
+        title: Text('TODO'),
         brightness: Brightness.dark,
       ),
       body: ValueListenableBuilder(
         valueListenable: tasksBox.listenable(),
-        builder: (BuildContext context, Box<String> value, Widget child) {
+        builder: (context, value, child) {
           if (tasksBox.length > 0) {
             return ListView.separated(
-              separatorBuilder: (context, index) => Divider(),
-              itemCount: tasksBox.length,
               itemBuilder: (context, index) {
-                print(tasksBox.getAt(index));
+                final task = tasksBox.get(index);
+
                 return ListTile(
-                  title: Text(tasksBox.getAt(index)),
+                  title: Text(task.title),
+                  leading: Checkbox(
+                      value: task.completed,
+                      onChanged: (bool value) => onUpdateTask(0)),
                   trailing: IconButton(
                     icon: Icon(Icons.delete),
                     onPressed: () => onDeleteTask(index),
                   ),
                 );
               },
+              itemCount: tasksBox.length,
+              separatorBuilder: (context, index) => Divider(),
             );
           } else {
             return EmptyList();
@@ -73,24 +84,23 @@ class _MyAppState extends State<MyApp> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xff0D3257),
-        onPressed: () => showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text('Add New Task'),
-                content: TextField(
-                    controller: _textFieldController,
-                    decoration: InputDecoration(hintText: "Enter task"),
-                    autofocus: true),
-                actions: <Widget>[
-                  TextButton(
-                    child: Text('SAVE'),
-                    onPressed: () => onAddTask(),
-                  ),
-                ],
-              );
-            }),
         child: Icon(Icons.add),
+        onPressed: () => showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('Add New Task'),
+              content: TextField(
+                controller: _textEditingController,
+                decoration: InputDecoration(hintText: "Enter task"),
+                autofocus: true,
+              ),
+              actions: [
+                TextButton(onPressed: () => onAddTask(), child: Text('SAVE'))
+              ],
+            );
+          },
+        ),
       ),
     );
   }
