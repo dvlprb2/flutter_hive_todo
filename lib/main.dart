@@ -39,7 +39,8 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  void onUpdateTask(int index) {
+  void onUpdateTask(int index, Task task) {
+    tasksBox.putAt(index, Task(task.title, !task.completed));
     return;
   }
 
@@ -66,8 +67,9 @@ class _MyAppState extends State<MyApp> {
                 return ListTile(
                   title: Text(task.title),
                   leading: Checkbox(
+                      activeColor: Color(0x800d3257),
                       value: task.completed,
-                      onChanged: (bool value) => onUpdateTask(0)),
+                      onChanged: (bool value) => onUpdateTask(index, task)),
                   trailing: IconButton(
                     icon: Icon(Icons.delete),
                     onPressed: () => onDeleteTask(index),
